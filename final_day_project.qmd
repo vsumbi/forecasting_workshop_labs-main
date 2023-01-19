@@ -1,0 +1,311 @@
+---
+title: "**Tidy Time Series Analysis**"
+subtitle: "*Final Day Project*"
+author: 
+    - name: John Karuitha
+      url: www.linkedin.com/in/Karuitha
+      affiliation: "Karatina University, Kenya"
+      affiliation-url: www.karu.ac.ke
+description: "Independent Data Analysis Project"
+date: today
+title-block-banner: true
+title-block-banner-color: "black"
+echo: true
+message: false
+warning: false
+format: 
+    html:
+        theme: 
+            light: flatly
+            dark: darkly
+        number-sections: true
+        code-fold: true
+        code-background: true
+        toc: true
+        toc-title: "Contents"
+        toc-depth: 3
+        toc-float: true
+        linkcolor: "blue"
+        tocolor: "blue"
+        link-citations: true
+    pdf:
+        header-includes: |
+            \usepackage{pdflscape}
+            \usepackage[OT1]{fontenc}
+            \newcommand{\blandscape}{\begin{landscape}}
+            \newcommand{\elandscape}{\end{landscape}}
+        toc: true
+        toc-depth: 3
+        toc-title: "Table of Contents"
+        linkcolor: blue
+        toccolor: blue
+        number-sections: true
+        number-depth: 3
+        documentclass: report #can always change doc type to your choice
+        margin-left: 30mm
+        margin-right: 30mm
+        link-citations: true
+editor: visual
+bibliography: ref.bib
+---
+
+```{r}
+# install.packages("janitor")
+# install.packages("ggthemes")
+# install.packages("artyfarty")
+library(tidyverse)
+library(fpp3)
+library(lubridate)
+library(tsbox)
+library(dygraphs)
+library(readxl)
+library(janitor)
+library(ggthemes)
+# library(artyfarty)
+```
+
+---
+
+
+# Prepare data
+
+## Read data
+
+```{r read-data}
+
+malariake <- read_xlsx("data/forecasting_data.xlsx") %>% 
+  clean_names() %>%  ## janitor package; for renaming the comumns
+  mutate(date = paste("1", months, years)) %>% #concatenate day, months and years
+  select(-months, -years) %>% #drop the 'months' and 'years' variables; select is for columns
+  relocate(date) %>% #move the date to the index position by default (functions .after/ .before + column_name)
+  filter(!str_detect(date, "Total")) %>%  #Remove any row in date that contains the string "total"
+  mutate(date = lubridate::dmy(date)) %>% #convert to date format
+  pivot_longer(cols = -date, names_to = "region", values_to = "cases") #convert data from wide format to long format (i.e. Tidy format)
+glimpse(malariake)
+
+```
+
+## Create a tsibble
+
+```{r tsibble}
+
+
+
+malariake_tsibble <- malariake %>% #convert to tsibble
+  mutate(date = yearmonth(date)) %>% 
+  as_tsibble(index = date, key = region)# Create tsibble using as_tsibble
+  
+glimpse(malariake_tsibble)
+ 
+  
+#check and fix duplicates
+malariake_tsibble%>% 
+  duplicated() %>% 
+  sum()
+
+## How to remove duplicates if they exist
+malariake_tsibble %>% 
+  dplyr::distinct()
+
+
+#Check gaps in time and fix it
+malariake_tsibble %>% 
+  scan_gaps()
+
+#fill gpas if they exist
+malariake_tsibble %>% 
+  fill_gaps()
+
+```
+
+# Visualise
+
+
+## time plot
+
+```{r time-plot}
+malariake_tsibble %>% 
+  autoplot() + ggthemes::theme_clean() + 
+  theme(legend.title = element_blank())
+
+malariake_tsibble %>% 
+  index_by(date) %>%  #groups the data by month
+  summarise(total = sum(cases)) %>% 
+  autoplot() + ggthemes::theme_wsj()
+
+```
+
+## seasonal and subseries
+
+
+```{r seasonal-plot}
+malariake_tsibble %>% 
+  gg_season() + ggthemes::theme_excel_new()
+
+```
+```{r}
+malariake_tsibble %>% 
+  index_by(date) %>% 
+  summarise(total = sum(cases)) %>% 
+  gg_season() +ggthemes::theme_wsj()
+
+```
+
+
+## autocorrelation
+
+```{r autocorrelation-plot}
+malariake_tsibble %>% 
+  ACF() %>% 
+  autoplot()
+
+```
+```{r}
+malariake_tsibble %>% 
+  index_by(date) %>% 
+  summarize(total = sum(cases)) %>% 
+  ACF() %>% 
+  autoplot()
+
+```
+
+
+# Specify and train models
+
+## Specify and train models using time series cross validation
+
+## Split
+
+## Specify and train models using time series cross validation
+
+
+## Generate forecasting
+
+
+```{r forecast}
+f_horizon <- 12 # forecast horizon
+percentage_test <- 2/9
+our_test_start_date <- as.character(max(malariake_tsibble$date) - round(percentage_test * length(unique(malariake_tsibble$date)))+1)
+
+test <- malariake_tsibble %>% 
+  filter_index(our_test_start_date ~ .)
+
+train <- malariake_tsibble %>% 
+  filter_index(. ~as.character(max(malariake_tsibble$date) - percentage_test * length(unique(malariake_tsibble$date))))
+
+head(test)
+tail(train)
+```
+
+```{r create_models}
+
+train_tcsv <- malariake_tsibble %>%
+  filter_index(. ~ as.character(max(malariake_tsibble$date) - f_horizon)) %>% 
+  stretch_tsibble(.init = length(unique(train$date)), .step = 1)
+train_tcsv
+
+
+```
+
+```{r}
+#| cache: true
+train_tcsv_model <- 
+  train_tcsv %>% 
+  model(
+    mean_model = MEAN(cases),
+    naive_model = NAIVE(cases),
+    snaive_model = SNAIVE(cases),
+    exponential_model = ETS(cases),
+    arima_model = ARIMA(cases),
+    regression_model = TSLM(cases)
+  )
+
+
+forecast_tscv <- train_tcsv_model %>%  forecast(h = 12)
+```
+
+# Evaluate forecast accuracy
+
+```{r}
+## grouped forecasts accuracy 
+
+```
+
+
+## Evaluate point forecast accuracy
+
+```{r}
+forecast_accuracy <- forecast_tscv %>% fabletools::accuracy(malariake_tsibble)
+```
+
+
+```{r}
+train_tcsv_model %>% 
+  
+  autoplot(malariake_tsibble, levels = NULL)
+```
+
+
+
+```{r point-accuracy, options}
+train_tcsv_model %>% 
+  tidy()
+
+train_tcsv_model %>% 
+  glance()
+
+train_tcsv_model %>% 
+  augment()
+
+train_tcsv_model %>% 
+  select(snaive_model) %>% 
+  report()
+```
+
+## Evaluate prediction interval forecast accuracy
+
+```{r}
+
+  
+```
+
+
+
+```{r interval-accuracy, options}
+
+```
+
+
+# Check residuals for the selected model
+
+
+```{r residual, options}
+
+```
+
+
+# Forecast for the future using the selected model and visualise forecast
+
+
+```{r forecast-visualise, options}
+
+```
+---
+
+# **Background**
+
+@hyndman2018forecasting
+
+# **Data**
+
+## Data and Data Sources
+
+## Data Visualization
+
+# **Model Development**
+
+# **Model Evaluation**
+
+# **Concluding Remarks**
+
+# **References** {.unnumbered}

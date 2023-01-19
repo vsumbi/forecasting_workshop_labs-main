@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.313">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="John Karuitha">
+<meta name="dcterms.date" content="2023-01-19">
+<meta name="description" content="Independent Data Analysis Project">
+
+<title>Tidy Time Series Analysis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+
+<script src="final_day_project_files/libs/clipboard/clipboard.min.js"></script>
+<script src="final_day_project_files/libs/quarto-html/quarto.js"></script>
+<script src="final_day_project_files/libs/quarto-html/popper.min.js"></script>
+<script src="final_day_project_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="final_day_project_files/libs/quarto-html/anchor.min.js"></script>
+<link href="final_day_project_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="final_day_project_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="final_day_project_files/libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="final_day_project_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="final_day_project_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="final_day_project_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="final_day_project_files/libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<style>
+    .quarto-title-block .quarto-title-banner {
+      color: black;
+    }
+    </style>
+
+
+</head>
+
+<body>
+
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title"><strong>Tidy Time Series Analysis</strong></h1>
+            <p class="subtitle lead"><em>Final Day Project</em></p>
+                  <div>
+        <div class="description">
+          Independent Data Analysis Project
+        </div>
+      </div>
+                </div>
+  </div>
+    
+  <div class="quarto-title-meta-author">
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-heading">Affiliation</div>
+    
+      <div class="quarto-title-meta-contents">
+      <a href="www.linkedin.com/in/Karuitha">John Karuitha</a> 
+    </div>
+      <div class="quarto-title-meta-contents">
+          <p class="affiliation">
+              <a href="www.karu.ac.ke">
+              Karatina University, Kenya
+              </a>
+            </p>
+        </div>
+      </div>
+
+  <div class="quarto-title-meta">
+
+        
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">January 19, 2023</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul>
+  <li><a href="#prepare-data" id="toc-prepare-data" class="nav-link active" data-scroll-target="#prepare-data"><span class="toc-section-number">1</span>  Prepare data</a>
+  <ul class="collapse">
+  <li><a href="#read-data" id="toc-read-data" class="nav-link" data-scroll-target="#read-data"><span class="toc-section-number">1.1</span>  Read data</a></li>
+  <li><a href="#create-a-tsibble" id="toc-create-a-tsibble" class="nav-link" data-scroll-target="#create-a-tsibble"><span class="toc-section-number">1.2</span>  Create a tsibble</a></li>
+  </ul></li>
+  <li><a href="#visualise" id="toc-visualise" class="nav-link" data-scroll-target="#visualise"><span class="toc-section-number">2</span>  Visualise</a>
+  <ul class="collapse">
+  <li><a href="#time-plot" id="toc-time-plot" class="nav-link" data-scroll-target="#time-plot"><span class="toc-section-number">2.1</span>  time plot</a></li>
+  <li><a href="#seasonal-and-subseries" id="toc-seasonal-and-subseries" class="nav-link" data-scroll-target="#seasonal-and-subseries"><span class="toc-section-number">2.2</span>  seasonal and subseries</a></li>
+  <li><a href="#autocorrelation" id="toc-autocorrelation" class="nav-link" data-scroll-target="#autocorrelation"><span class="toc-section-number">2.3</span>  autocorrelation</a></li>
+  </ul></li>
+  <li><a href="#specify-and-train-models" id="toc-specify-and-train-models" class="nav-link" data-scroll-target="#specify-and-train-models"><span class="toc-section-number">3</span>  Specify and train models</a>
+  <ul class="collapse">
+  <li><a href="#specify-and-train-models-using-time-series-cross-validation" id="toc-specify-and-train-models-using-time-series-cross-validation" class="nav-link" data-scroll-target="#specify-and-train-models-using-time-series-cross-validation"><span class="toc-section-number">3.1</span>  Specify and train models using time series cross validation</a></li>
+  <li><a href="#split" id="toc-split" class="nav-link" data-scroll-target="#split"><span class="toc-section-number">3.2</span>  Split</a></li>
+  <li><a href="#specify-and-train-models-using-time-series-cross-validation-1" id="toc-specify-and-train-models-using-time-series-cross-validation-1" class="nav-link" data-scroll-target="#specify-and-train-models-using-time-series-cross-validation-1"><span class="toc-section-number">3.3</span>  Specify and train models using time series cross validation</a></li>
+  <li><a href="#generate-forecasting" id="toc-generate-forecasting" class="nav-link" data-scroll-target="#generate-forecasting"><span class="toc-section-number">3.4</span>  Generate forecasting</a></li>
+  </ul></li>
+  <li><a href="#evaluate-forecast-accuracy" id="toc-evaluate-forecast-accuracy" class="nav-link" data-scroll-target="#evaluate-forecast-accuracy"><span class="toc-section-number">4</span>  Evaluate forecast accuracy</a>
+  <ul class="collapse">
+  <li><a href="#evaluate-point-forecast-accuracy" id="toc-evaluate-point-forecast-accuracy" class="nav-link" data-scroll-target="#evaluate-point-forecast-accuracy"><span class="toc-section-number">4.1</span>  Evaluate point forecast accuracy</a></li>
+  <li><a href="#evaluate-prediction-interval-forecast-accuracy" id="toc-evaluate-prediction-interval-forecast-accuracy" class="nav-link" data-scroll-target="#evaluate-prediction-interval-forecast-accuracy"><span class="toc-section-number">4.2</span>  Evaluate prediction interval forecast accuracy</a></li>
+  </ul></li>
+  <li><a href="#check-residuals-for-the-selected-model" id="toc-check-residuals-for-the-selected-model" class="nav-link" data-scroll-target="#check-residuals-for-the-selected-model"><span class="toc-section-number">5</span>  Check residuals for the selected model</a></li>
+  <li><a href="#forecast-for-the-future-using-the-selected-model-and-visualise-forecast" id="toc-forecast-for-the-future-using-the-selected-model-and-visualise-forecast" class="nav-link" data-scroll-target="#forecast-for-the-future-using-the-selected-model-and-visualise-forecast"><span class="toc-section-number">6</span>  Forecast for the future using the selected model and visualise forecast</a></li>
+  <li><a href="#background" id="toc-background" class="nav-link" data-scroll-target="#background"><span class="toc-section-number">7</span>  <strong>Background</strong></a></li>
+  <li><a href="#data" id="toc-data" class="nav-link" data-scroll-target="#data"><span class="toc-section-number">8</span>  <strong>Data</strong></a>
+  <ul class="collapse">
+  <li><a href="#data-and-data-sources" id="toc-data-and-data-sources" class="nav-link" data-scroll-target="#data-and-data-sources"><span class="toc-section-number">8.1</span>  Data and Data Sources</a></li>
+  <li><a href="#data-visualization" id="toc-data-visualization" class="nav-link" data-scroll-target="#data-visualization"><span class="toc-section-number">8.2</span>  Data Visualization</a></li>
+  </ul></li>
+  <li><a href="#model-development" id="toc-model-development" class="nav-link" data-scroll-target="#model-development"><span class="toc-section-number">9</span>  <strong>Model Development</strong></a></li>
+  <li><a href="#model-evaluation" id="toc-model-evaluation" class="nav-link" data-scroll-target="#model-evaluation"><span class="toc-section-number">10</span>  <strong>Model Evaluation</strong></a></li>
+  <li><a href="#concluding-remarks" id="toc-concluding-remarks" class="nav-link" data-scroll-target="#concluding-remarks"><span class="toc-section-number">11</span>  <strong>Concluding Remarks</strong></a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references"><strong>References</strong></a></li>
+  </ul>
+</nav>
+</div>
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages("janitor")</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages("ggthemes")</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages("artyfarty")</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fpp3)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tsbox)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dygraphs)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(janitor)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggthemes)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># library(artyfarty)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<hr>
+<section id="prepare-data" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Prepare data</h1>
+<section id="read-data" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="read-data"><span class="header-section-number">1.1</span> Read data</h2>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>malariake <span class="ot">&lt;-</span> <span class="fu">read_xlsx</span>(<span class="st">"data/forecasting_data.xlsx"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">clean_names</span>() <span class="sc">%&gt;%</span>  <span class="do">## janitor package; for renaming the comumns</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">date =</span> <span class="fu">paste</span>(<span class="st">"1"</span>, months, years)) <span class="sc">%&gt;%</span> <span class="co">#concatenate day, months and years</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>months, <span class="sc">-</span>years) <span class="sc">%&gt;%</span> <span class="co">#drop the 'months' and 'years' variables; select is for columns</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(date) <span class="sc">%&gt;%</span> <span class="co">#move the date to the index position by default (functions .after/ .before + column_name)</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">str_detect</span>(date, <span class="st">"Total"</span>)) <span class="sc">%&gt;%</span>  <span class="co">#Remove any row in date that contains the string "total"</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">date =</span> lubridate<span class="sc">::</span><span class="fu">dmy</span>(date)) <span class="sc">%&gt;%</span> <span class="co">#convert to date format</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>date, <span class="at">names_to =</span> <span class="st">"region"</span>, <span class="at">values_to =</span> <span class="st">"cases"</span>) <span class="co">#convert data from wide format to long format (i.e. Tidy format)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(malariake)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 540
+Columns: 3
+$ date   &lt;date&gt; 2014-01-01, 2014-01-01, 2014-01-01, 2014-01-01, 2014-01-01, 20…
+$ region &lt;chr&gt; "highland_epidemic", "lake_endemic", "coast_endemic", "low_risk…
+$ cases  &lt;dbl&gt; 250965, 632141, 98990, 41473, 246694, 243252, 616607, 33734, 54…</code></pre>
+</div>
+</div>
+</section>
+<section id="create-a-tsibble" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="create-a-tsibble"><span class="header-section-number">1.2</span> Create a tsibble</h2>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>malariake_tsibble <span class="ot">&lt;-</span> malariake <span class="sc">%&gt;%</span> <span class="co">#convert to tsibble</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">date =</span> <span class="fu">yearmonth</span>(date)) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tsibble</span>(<span class="at">index =</span> date, <span class="at">key =</span> region)<span class="co"># Create tsibble using as_tsibble</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(malariake_tsibble)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 540
+Columns: 3
+Key: region [5]
+$ date   &lt;mth&gt; 2014 Jan, 2014 Feb, 2014 Mar, 2014 Apr, 2014 May, 2014 Jun, 201…
+$ region &lt;chr&gt; "coast_endemic", "coast_endemic", "coast_endemic", "coast_endem…
+$ cases  &lt;dbl&gt; 98990, 33734, 36031, 35337, 50626, 45282, 45152, 39172, 30239, …</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#check and fix duplicates</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>malariake_tsibble<span class="sc">%&gt;%</span> </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">duplicated</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="do">## How to remove duplicates if they exist</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">distinct</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 540 × 3
+       date region        cases
+      &lt;mth&gt; &lt;chr&gt;         &lt;dbl&gt;
+ 1 2014 Jan coast_endemic 98990
+ 2 2014 Feb coast_endemic 33734
+ 3 2014 Mar coast_endemic 36031
+ 4 2014 Apr coast_endemic 35337
+ 5 2014 May coast_endemic 50626
+ 6 2014 Jun coast_endemic 45282
+ 7 2014 Jul coast_endemic 45152
+ 8 2014 Aug coast_endemic 39172
+ 9 2014 Sep coast_endemic 30239
+10 2014 Oct coast_endemic 29576
+# … with 530 more rows</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Check gaps in time and fix it</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scan_gaps</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tsibble: 0 x 2 [?]
+# Key:       region [0]
+# … with 2 variables: region &lt;chr&gt;, date &lt;mth&gt;</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">#fill gpas if they exist</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fill_gaps</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tsibble: 540 x 3 [1M]
+# Key:       region [5]
+       date region        cases
+      &lt;mth&gt; &lt;chr&gt;         &lt;dbl&gt;
+ 1 2014 Jan coast_endemic 98990
+ 2 2014 Feb coast_endemic 33734
+ 3 2014 Mar coast_endemic 36031
+ 4 2014 Apr coast_endemic 35337
+ 5 2014 May coast_endemic 50626
+ 6 2014 Jun coast_endemic 45282
+ 7 2014 Jul coast_endemic 45152
+ 8 2014 Aug coast_endemic 39172
+ 9 2014 Sep coast_endemic 30239
+10 2014 Oct coast_endemic 29576
+# … with 530 more rows</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="visualise" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Visualise</h1>
+<section id="time-plot" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="time-plot"><span class="header-section-number">2.1</span> time plot</h2>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">autoplot</span>() <span class="sc">+</span> ggthemes<span class="sc">::</span><span class="fu">theme_clean</span>() <span class="sc">+</span> </span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.title =</span> <span class="fu">element_blank</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="final_day_project_files/figure-html/time-plot-1.png" class="img-fluid" width="672"></p>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">index_by</span>(date) <span class="sc">%&gt;%</span>  <span class="co">#groups the data by month</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">total =</span> <span class="fu">sum</span>(cases)) <span class="sc">%&gt;%</span> </span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">autoplot</span>() <span class="sc">+</span> ggthemes<span class="sc">::</span><span class="fu">theme_wsj</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="final_day_project_files/figure-html/time-plot-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="seasonal-and-subseries" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="seasonal-and-subseries"><span class="header-section-number">2.2</span> seasonal and subseries</h2>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gg_season</span>() <span class="sc">+</span> ggthemes<span class="sc">::</span><span class="fu">theme_excel_new</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="final_day_project_files/figure-html/seasonal-plot-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">index_by</span>(date) <span class="sc">%&gt;%</span> </span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">total =</span> <span class="fu">sum</span>(cases)) <span class="sc">%&gt;%</span> </span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gg_season</span>() <span class="sc">+</span>ggthemes<span class="sc">::</span><span class="fu">theme_wsj</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="final_day_project_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="autocorrelation" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="autocorrelation"><span class="header-section-number">2.3</span> autocorrelation</h2>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ACF</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">autoplot</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="final_day_project_files/figure-html/autocorrelation-plot-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">index_by</span>(date) <span class="sc">%&gt;%</span> </span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">total =</span> <span class="fu">sum</span>(cases)) <span class="sc">%&gt;%</span> </span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ACF</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">autoplot</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="final_day_project_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="specify-and-train-models" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Specify and train models</h1>
+<section id="specify-and-train-models-using-time-series-cross-validation" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="specify-and-train-models-using-time-series-cross-validation"><span class="header-section-number">3.1</span> Specify and train models using time series cross validation</h2>
+</section>
+<section id="split" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="split"><span class="header-section-number">3.2</span> Split</h2>
+<div class="cell">
+
+</div>
+</section>
+<section id="specify-and-train-models-using-time-series-cross-validation-1" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="specify-and-train-models-using-time-series-cross-validation-1"><span class="header-section-number">3.3</span> Specify and train models using time series cross validation</h2>
+<div class="cell">
+
+</div>
+</section>
+<section id="generate-forecasting" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="generate-forecasting"><span class="header-section-number">3.4</span> Generate forecasting</h2>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>f_horizon <span class="ot">&lt;-</span> <span class="dv">12</span> <span class="co"># forecast horizon</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>percentage_test <span class="ot">&lt;-</span> <span class="dv">2</span><span class="sc">/</span><span class="dv">9</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>our_test_start_date <span class="ot">&lt;-</span> <span class="fu">as.character</span>(<span class="fu">max</span>(malariake_tsibble<span class="sc">$</span>date) <span class="sc">-</span> <span class="fu">round</span>(percentage_test <span class="sc">*</span> <span class="fu">length</span>(<span class="fu">unique</span>(malariake_tsibble<span class="sc">$</span>date)))<span class="sc">+</span><span class="dv">1</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>test <span class="ot">&lt;-</span> malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter_index</span>(our_test_start_date <span class="sc">~</span> .)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>train <span class="ot">&lt;-</span> malariake_tsibble <span class="sc">%&gt;%</span> </span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter_index</span>(. <span class="sc">~</span><span class="fu">as.character</span>(<span class="fu">max</span>(malariake_tsibble<span class="sc">$</span>date) <span class="sc">-</span> percentage_test <span class="sc">*</span> <span class="fu">length</span>(<span class="fu">unique</span>(malariake_tsibble<span class="sc">$</span>date))))</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tsibble: 6 x 3 [1M]
+# Key:       region [1]
+      date region        cases
+     &lt;mth&gt; &lt;chr&gt;         &lt;dbl&gt;
+1 2021 Jan coast_endemic  9447
+2 2021 Feb coast_endemic 37438
+3 2021 Mar coast_endemic 36082
+4 2021 Apr coast_endemic 18964
+5 2021 May coast_endemic 24377
+6 2021 Jun coast_endemic 25515</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span>(train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tsibble: 6 x 3 [1M]
+# Key:       region [1]
+      date region                  cases
+     &lt;mth&gt; &lt;chr&gt;                   &lt;dbl&gt;
+1 2020 Jul semi_arid_seasonal_risk 39610
+2 2020 Aug semi_arid_seasonal_risk 86028
+3 2020 Sep semi_arid_seasonal_risk 70032
+4 2020 Oct semi_arid_seasonal_risk 58960
+5 2020 Nov semi_arid_seasonal_risk 54928
+6 2020 Dec semi_arid_seasonal_risk 51688</code></pre>
+</div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># train_tcsv &lt;- malariake_tsibble %&gt;% </span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter_index(as.character(max))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+<section id="evaluate-forecast-accuracy" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Evaluate forecast accuracy</h1>
+<section id="evaluate-point-forecast-accuracy" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="evaluate-point-forecast-accuracy"><span class="header-section-number">4.1</span> Evaluate point forecast accuracy</h2>
+<div class="cell">
+
+</div>
+</section>
+<section id="evaluate-prediction-interval-forecast-accuracy" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="evaluate-prediction-interval-forecast-accuracy"><span class="header-section-number">4.2</span> Evaluate prediction interval forecast accuracy</h2>
+<div class="cell">
+
+</div>
+</section>
+</section>
+<section id="check-residuals-for-the-selected-model" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Check residuals for the selected model</h1>
+<div class="cell">
+
+</div>
+</section>
+<section id="forecast-for-the-future-using-the-selected-model-and-visualise-forecast" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Forecast for the future using the selected model and visualise forecast</h1>
+<div class="cell">
+
+</div>
+<hr>
+</section>
+<section id="background" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> <strong>Background</strong></h1>
+<p><span class="citation" data-cites="hyndman2018forecasting">Hyndman and Athanasopoulos (<a href="#ref-hyndman2018forecasting" role="doc-biblioref">2018</a>)</span></p>
+</section>
+<section id="data" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> <strong>Data</strong></h1>
+<section id="data-and-data-sources" class="level2" data-number="8.1">
+<h2 data-number="8.1" class="anchored" data-anchor-id="data-and-data-sources"><span class="header-section-number">8.1</span> Data and Data Sources</h2>
+</section>
+<section id="data-visualization" class="level2" data-number="8.2">
+<h2 data-number="8.2" class="anchored" data-anchor-id="data-visualization"><span class="header-section-number">8.2</span> Data Visualization</h2>
+</section>
+</section>
+<section id="model-development" class="level1" data-number="9">
+<h1 data-number="9"><span class="header-section-number">9</span> <strong>Model Development</strong></h1>
+</section>
+<section id="model-evaluation" class="level1" data-number="10">
+<h1 data-number="10"><span class="header-section-number">10</span> <strong>Model Evaluation</strong></h1>
+</section>
+<section id="concluding-remarks" class="level1" data-number="11">
+<h1 data-number="11"><span class="header-section-number">11</span> <strong>Concluding Remarks</strong></h1>
+</section>
+<section id="references" class="level1 unnumbered">
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="doc-bibliography">
+<div id="ref-hyndman2018forecasting" class="csl-entry" role="doc-biblioentry">
+Hyndman, Rob J, and George Athanasopoulos. 2018. <em>Forecasting: Principles and Practice, 3rd Edition</em>. OTexts.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  let localAlternateSentinel = 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

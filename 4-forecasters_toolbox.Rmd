@@ -1,0 +1,283 @@
+---
+title: "Forecaster's toolbox"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#DO NOT FORGET TO LOAD PACKAGES
+library(tidyverse)
+library(fpp3)
+
+#admission_hourly <- read_rds("data/admission_hourly.rds")
+#admission_daily <- read_rds("data/admission_daily.rds")
+
+admission_daily <- read_csv(
+
+  file = "data/ae_uk.csv") %>% mutate(arrival_time= dmy_hm(arrival_time)) %>%
+
+  dplyr::distinct() %>% as_tsibble(index = arrival_time, key = c(gender,type_injury), regular=FALSE) %>% index_by(time = lubridate::as_date(arrival_time)) %>%
+
+  summarise(arrival=n(), .groups = "drop") %>% fill_gaps(arrival=0)
+```
+
+# Lab session 5: specify and train models
+
+# Fittig model, specify and estimate parameters in fable
+
+We start with simple benchmark method: average, naive, snaive
+
+We specify models using the function corresponding to the name of the forecasting model. We use a formula (response ~ terms) to specify methods and estimate parameters using `model()` function. If there is no term for the method (e.g. `MEAN(arrival)`), we ignore the `~` and terms:
+
+Now, run the following R chunk:
+
+```{r fit-models}
+admission_fit <- admission_daily %>%
+  model(
+    mean = MEAN(arrival),#total average
+    naive = NAIVE(arrival),#naive
+    snaive = SNAIVE(arrival),#seasonal naive
+    exponential_smoothing = ETS(arrival), #exponential smoothing models
+    arima = ARIMA(arrival), #arima models
+    regression = TSLM(arrival), #time series linear progression models
+  )
+```
+
+You can observe `admission_fit` object by selecting it and run.
+
+`admission_fit` is called `mable`, it is model table, each row belongs to one time series and each column to a model
+
+
+Now we can extract information or look into details of the trained models(mable) using `tidy()`, `report()`, `glance()` and `augment()`
+
+These function would reveal more information when used with models with parameters such as exponential smoothing (ETS), but here you can try them with  simple methods and use them with ETS in the next tutorial as well:
+
+```{r extract-fitting-model}
+admission_fit %>% tidy() 
+admission_fit %>% glance()
+admission_fit %>% augment()
+admission_fit %>% select(snaive) %>% report() 
+```
+
+You can extract fitted values and residuals for each model using `augment()` .
+You can then use filter() to extract information for any model and select  `.fitted` or `.resid`
+
+```{r use-augment}
+admission_fit %>% augment() 
+admission_fit %>% augment() %>% filter(.model=="snaive") %>% select(.fitted)#select fitted values
+admission_fit %>% augment() %>% filter(.model=="snaive") %>% select(.resid)# select residuals
+
+fit <- admission_fit %>% augment() %>% 
+  filter(.model=="snaive")
+
+fit %>% autoplot(arrival) +
+autolayer(fit, .fitted, color="red", lty=3)
+```
+
+In order to produce forecasts, we pass `admission_fit`, the mable object, to the `forecast()` function:
+
+```{r forecast-models}
+admission_fc <- admission_fit %>% forecast(h=42)
+```
+
+Forecast function needs the forecast horizon as argument, h="42 days" or h=42
+
+We can also plot generated forecasts using models, if you don't want to plot prediction intervals, then use `level=NULL`
+
+```{r plot-forecast}
+admission_fc %>% 
+  autoplot(admission_daily,level=NULL)
+```
+
+It is hard to see the forecast lines, so we plot only a part of the time series data. `filter_index()` is used for this:
+
+```{r plot-forecast-less}
+admission_fc %>% autoplot(filter_index(admission_daily,"2016"~.), level=NULL)
+```
+
+# Lab session 6: Evaluate and report forecast accuracy
+
+In a typical forecasting task, you compare multiple forecasting models and choose one that provides more accuracy. The most robust way to choose the best forecasting model is to use time series cross validation.
+
+## Time series cross validation
+
+This is also called rolling forecast or rolling origin:
+You can also reflect on the following questions:
+- Why do we use TSCV? you can read more here: https://otexts.com/fpp3/tscv.html
+- How do we do TSCV in R? Which steps to follow?
+      1. split data using `filter_index()`
+      2. create different time series (different origins)
+      2. model each time series, 
+      3. forecast for each series 
+
+let's see how we do it in R:
+
+1. split data
+
+We initially split the data into test and train, the size of test set equals the forecast horizon, we use this for the purpose of visualizing the forecasts, not deciding which model is the best (more accurate)
+
+```{r split}
+f_horizon <- 42# forecast horizon
+
+percentage_test <- 0.2
+
+test <- admission_daily %>%
+
+  filter_index(as.character(max(admission_daily$time)-round(percentage_test*nrow(admission_daily))+1) ~ .)
+
+ 
+
+train <- admission_daily %>%
+
+  filter_index(. ~ as.character(max(admission_daily$time)-(round(percentage_test*nrow(admission_daily)))))
+```
+
+2. Use `stretch_tsibble()` to Create different timeseries (i.e different id)
+
+We apply time series cross validation on the train data. We first start with an initial training size (.init = ) and then increase the size of the previous time series by adding more new observation(.step=) to create a new time series, we continue creating these timeseries until the number of observation left at the end of timeseries equals to the forecast horizon, we stop there.
+
+```{r rolling-origin-series}
+train_tscv <- admission_daily %>% # split data into series with increasing size
+  filter_index(. ~ as.character(max(admission_daily$time) - f_horizon)) %>%
+  stretch_tsibble(.init = length(train$time), .step = 7)
+```
+
+`.init` is the size of initial time series, 
+`.step` is the increment step >=1, this can correspond to the forecasting frequency, how often you generate the forecast. if .step=1 in a daily time series, it means we generate forecasts every day for the next 42 days (forecast horizon=42)
+
+What is the purpose of using slice(1:(n()-f_horizon))? Remember, we have to stop creating rolling origin series when we have only 42 observations left (equal to forecast horizon)
+
+How many time series(samples) we create with this process? what is the new variable .id?
+
+As you can see we have created 739 time series (samples), this means 739 different situations where forecasting models are evaluated, so id any model performs well for all these situations, we are pretty confident to use it for producing forecasts in the future.
+
+3. train models for each time series (for each value of `.id` variable)
+
+```{r train-model}
+ae_model_tscv <- train_tscv %>%
+  model(
+    mean = MEAN(arrival),#total average
+    naive = NAIVE(arrival),#naive
+    snaive = SNAIVE(arrival),#seasonal naive
+    exponential_smoothing = ETS(arrival), #exponential smoothing models
+    arima = ARIMA(arrival), #arima models
+    regression = TSLM(arrival)
+  )
+```
+
+You can observe `ae_model_tscv` by selecting (just double click on it) and running it, this is our model table (mable). We get one column for each forecasting model that is applied to each time series (rows).  inside each cell(e.g.<S3: lst_mdl>) we have the fitted (trained) model with its components and parameters.
+
+You can also use the functions introduced above to investigate fitted models to each .id:
+
+```{r extract-info-tscv}
+ae_model_tscv %>% tidy()
+ae_model_tscv %>% filter(.id==60) %>% glance() # if you want to observe one specific .id
+ae_model_tscv %>% augment() 
+```
+
+4. forecast for each series
+
+Now, we want to produce forecast for 42 days that is applied to all 739 time series created using TSCV:
+
+```{r fcst-series}
+ae_fcst_tscv <- ae_model_tscv %>% forecast(h=42)
+ae_fcst_tscv #observe ae_fcst_tscv
+```
+
+This will create a forecast table or `fable` object. Observe it and look at the columns.
+What is `arrival` and `.mean` in ae_fcst_tscv?
+
+in `ae_fcst_tscv` (a fable object) each .id is representing the forecast for each series.
+
+# Evaluate forecast accuracy
+
+You calculate the point forecast accuracy using `accuracy()` function. `accuracy()` needs both the forecast object(fable) and actual data.
+
+```{r label, options}
+fc_accuracy <- ae_fcst_tscv %>% accuracy(admission_daily) 
+
+fc_accuracy %>% select(.model, RMSE, MAE)
+```
+
+This will provide a summary of multiple accuracy measures. The result is summarised automatically across all series (.id) using a simple average.
+
+Now let's see how we can get the accuracy measure for each .id separately instead of averaging across all of them. To do this, you need to use an additional argument in accuracy(by=):
+
+```{r label2, options}
+fc_accuracy_by_id <- ae_fcst_tscv %>% accuracy(admission_daily, by = c(".id",".model"))
+```
+
+We can now create some insightful visualizations:
+
+```{r label3, options}
+fc_accuracy_density <- fc_accuracy_by_id %>% select(.id,.model,RMSE) 
+  ggplot(data=fc_accuracy_density, aes(RMSE))+
+    geom_density(aes(fill=factor(.model)), alpha=.5)
+
+fc_accuracy_boxplot <- fc_accuracy_by_id %>% select(.id,.model,RMSE) 
+ggplot(data=fc_accuracy_boxplot, aes(RMSE))+
+    geom_boxplot(aes(fill=factor(.model)), alpha=.5)
+```
+
+What if you want to get the accuracy measure for each model and each horizon (h=1, 2,...,42)?
+
+In fable we don't get automatically a column that corresponds to forecast horizon(h=1,2,3,..., 42). If this is something you are interested in, you can do it yourself, let's first observe the first 50 observations to see the difference later:
+
+```{r view_h}
+View(ae_fcst_tscv[1:50,])
+```
+
+We first need to group by `id` and `.model` and then create a new variable called `h` and assign row_number() to it( you can type ?row_number in your Console to see what this function does, it simply returns the number of row)
+
+```{r label4, options}
+ae_fc <- ae_fcst_tscv %>% 
+  group_by(.id,.model) %>% 
+  mutate(h=row_number()) %>% ungroup()
+View(ae_fc[1:50,])# view the first 43 rows of ae_fc observe h
+```
+
+Now check rows from 42 to 50 to see the difference.
+
+To calculate the accuracy measures for each horizon and model, follow this:
+
+```{r accuracu_h}
+fc_accuracy <- ae_fc %>% as_fable(response = "arrival", distribution = "arrival") %>% 
+accuracy(admission_daily, by = c("h", ".model"))
+tail(fc_accuracy)
+```
+
+you can select any accuracy measure you want using `select()`, alternatively you can calculate them
+
+```{r which-accuracy}
+#only point forecast
+ ae_fcst_tscv %>%
+  accuracy(admission_daily) %>% select(.model, RMSE, MAE)
+```
+
+You can specify which accuracy measure you want using `measures = list()`
+
+```{r accuracy-measures}
+#only point forecast
+ ae_fcst_tscv %>%
+  accuracy(admission_daily,measures = list(point_accuracy_measures)) 
+#only prediction interval forecast using winkler score
+#ae_fcst_tscv %>% 
+ # accuracy(train,measures = list(???))
+
+#both point forecast accuracy and winkler score
+ae_fcst_tscv %>% 
+  accuracy(admission_daily,
+           measures = list(point_accuracy_measures,
+                           interval_accuracy_measures
+                           
+)) 
+```
+
+# Extract prediction intervals
+
+Use `hilo()` to extract prediction intervals for any coverage probability you are interested in. To be able to see values for lower bound and upper bound in separate columns, you need to unpack the prediction intervals using `unpack_hilo()`:
+
+```{r prediction-interval-extract}
+## getting prediction intervals
+ae_fcst_tscv %>% hilo(level = 95) %>% unpack_hilo("95%")
+```
